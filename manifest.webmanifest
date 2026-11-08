@@ -1,8 +1,8 @@
 {
-  "name": "Ma WishList",
-  "short_name": "WishList",
+  "name": "MyWishList",
+  "short_name": "MyWishList",
   "description": "Ma liste de souhaits",
-  "start_url": "./index.html",
+  "start_url": "./index.html?source=pwa",
   "scope": "./",
   "display": "standalone",
   "background_color": "#fbeef0",
@@ -27,5 +27,6 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "id": "./?app=mywishlist"
 }
