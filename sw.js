@@ -1,5 +1,5 @@
-var CACHE = 'wishlist-v3';
-var FILES = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
+var CACHE = 'wishlist-v4';
+var FILES = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(FILES); }));
   self.skipWaiting();
