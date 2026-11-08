@@ -22,10 +22,13 @@ body{background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,S
 h2{margin:6px 0 2px;font-size:1.3rem}
 .sec{font-weight:700;margin:18px 0 8px;color:var(--rose-d)}
 .card{background:var(--card);border-radius:18px;padding:14px;box-shadow:0 4px 14px rgba(201,135,145,.15);display:grid;gap:8px}
-input,select{width:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;font-size:1rem;background:#fffafa;color:var(--txt)}
-input:focus,select:focus{outline:none;border-color:var(--rose-d)}
+input,select,textarea{width:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;font-size:1rem;background:#fffafa;color:var(--txt)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--rose-d)}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 button{border:0;border-radius:12px;padding:12px;font-size:1rem;font-weight:600;background:var(--rose-d);color:#fff;cursor:pointer;font-family:inherit}
+textarea{font-family:inherit;resize:vertical}
+.addbtn{width:100%;margin:14px 0 4px}
+.note{white-space:pre-wrap;color:var(--txt);opacity:.8}
 button.ghost{background:none;color:var(--mut);font-weight:500;font-size:.9rem}
 .photo{display:flex;align-items:center;gap:10px}
 .photo label{flex:1;border:1.5px dashed var(--rose);border-radius:12px;padding:11px;text-align:center;color:var(--rose-d);cursor:pointer;font-size:.95rem}
@@ -71,6 +74,7 @@ var OLD_KEY = 'wishlist-items-v1';
 var state = null;
 var view = 'home';
 var pendingImg = '';
+var showForm = false;
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 function esc(s) {
@@ -168,13 +172,19 @@ function viewList(l) {
   l.items.forEach(function (i) { if (!i.done && i.price) sum += i.price; });
   var h = '<h2>' + esc(l.name) + '</h2><div class="m">' + esc(optName(state.labels, l.label)) + ' · ' + todoCount(l) + ' à avoir';
   if (sum > 0) h += ' · ' + money(sum);
-  h += '</div><div class="sec">Ajouter un souhait</div><div class="card">';
-  h += '<input id="name" placeholder="Que souhaites-tu ?" maxlength="80">';
-  h += '<div class="row"><input id="price" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Prix (€)">';
-  h += '<select id="prio">' + options(state.prios, '') + '</select></div>';
-  h += '<input id="link" type="url" placeholder="Lien (facultatif)">';
-  h += '<div class="photo"><label for="img">&#128247; Ajouter une photo</label><input id="img" type="file" accept="image/*"><img id="prev" alt="" style="display:none"></div>';
-  h += '<button data-add="1">Ajouter</button></div>';
+  h += '</div>';
+  if (!showForm) {
+    h += '<button class="addbtn" data-show="1">+ Ajouter un souhait</button>';
+  } else {
+    h += '<div class="sec">Nouveau souhait</div><div class="card">';
+    h += '<input id="name" placeholder="Que souhaites-tu ?" maxlength="80">';
+    h += '<div class="row"><input id="price" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Prix (€)">';
+    h += '<select id="prio">' + options(state.prios, '') + '</select></div>';
+    h += '<input id="link" type="url" placeholder="Lien (facultatif)">';
+    h += '<textarea id="note" rows="3" maxlength="500" placeholder="Note libre (taille, couleur, magasin…)"></textarea>';
+    h += '<div class="photo"><label for="img">&#128247; Ajouter une photo</label><input id="img" type="file" accept="image/*"><img id="prev" alt="" style="display:none"></div>';
+    h += '<button data-add="1">Ajouter</button><button class="ghost" data-hide="1">Annuler</button></div>';
+  }
   var sorted = l.items.slice().sort(function (a, b) {
     return (a.done ? 1 : 0) - (b.done ? 1 : 0) || optIndex(state.prios, b.prio) - optIndex(state.prios, a.prio);
   });
@@ -186,7 +196,9 @@ function viewList(l) {
     h += '<div class="body"><div class="t">' + esc(i.name) + '</div><div class="m">' + esc(optName(state.prios, i.prio) || '—');
     if (i.price !== null && i.price !== undefined) h += ' · ' + money(i.price);
     if (i.link) h += ' · <a href="' + esc(i.link) + '" target="_blank" rel="noopener">Lien</a>';
-    h += '</div></div><button class="del" data-d="' + i.id + '" aria-label="Supprimer">&times;</button></div>';
+    h += '</div>';
+    if (i.note) h += '<div class="m note">' + esc(i.note) + '</div>';
+    h += '</div><button class="del" data-d="' + i.id + '" aria-label="Supprimer">&times;</button></div>';
   });
   if (!sorted.length) h += '<div class="empty">Aucun souhait pour le moment.</div>';
   h += '<button class="ghost" data-dl="' + l.id + '">Supprimer cette liste</button>';
@@ -224,7 +236,7 @@ function render() {
   document.getElementById('app').innerHTML = h;
   renderTabs();
 }
-function go(v) { view = v; pendingImg = ''; render(); window.scrollTo(0, 0); }
+function go(v) { view = v; pendingImg = ''; showForm = false; render(); window.scrollTo(0, 0); }
 
 /* ---------- Actions ---------- */
 function createList() {
@@ -244,9 +256,11 @@ function addItem() {
     id: uid(), name: name, price: isNaN(price) ? null : price,
     prio: document.getElementById('prio').value,
     link: safeUrl(document.getElementById('link').value.trim()),
+    note: document.getElementById('note').value.trim(),
     img: pendingImg, done: false
   });
   pendingImg = '';
+  showForm = false;
   save(); render();
 }
 function toggleItem(id) {
@@ -284,7 +298,7 @@ function removeOption(key, id) {
 }
 
 document.addEventListener('click', function (e) {
-  var t = e.target.closest ? e.target.closest('[data-v],[data-t],[data-d],[data-dl],[data-add],[data-cl],[data-a],[data-r],[data-x]') : null;
+  var t = e.target.closest ? e.target.closest('[data-v],[data-t],[data-d],[data-dl],[data-add],[data-show],[data-hide],[data-cl],[data-a],[data-r],[data-x]') : null;
   if (!t) return;
   var d = t.dataset;
   if (d.v) go(d.v);
@@ -292,6 +306,8 @@ document.addEventListener('click', function (e) {
   else if (d.d) removeItem(d.d);
   else if (d.dl) removeList(d.dl);
   else if (d.add) addItem();
+  else if (d.show) { showForm = true; render(); var n = document.getElementById('name'); if (n) n.focus(); }
+  else if (d.hide) { showForm = false; pendingImg = ''; render(); }
   else if (d.cl) createList();
   else if (d.a) addOption(d.a);
   else if (d.r) renameOption(d.r.split(':')[0], d.r.split(':')[1]);
